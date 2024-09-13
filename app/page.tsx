@@ -1,101 +1,136 @@
-import Image from "next/image";
+"use client";
+import * as React from 'react';
+import './custom-theme.scss';  // Make sure this file exists and is loaded
+import products from "./shared-gd-products.json";  // Ensure this path and file are correct
+import { Grid, GridColumn as Column, GridDataStateChangeEvent as Event, GridCustomCellProps as Props, GridItemChangeEvent as Item, GridRowClickEvent as Row, GridToolbar } from "@progress/kendo-react-grid";
+import { process, State, DataResult } from "@progress/kendo-data-query";
+import { GridPDFExport } from "@progress/kendo-react-pdf";
+import { Button } from "@progress/kendo-react-buttons";
+
+interface ProductCategory {
+  CategoryID?: number;
+  CategoryName?: string;
+  Description?: string;
+}
+
+interface Product {
+  ProductID: number;
+  ProductName?: string;
+  SupplierID?: number;
+  CategoryID?: number;
+  QuantityPerUnit?: string;
+  UnitPrice?: number;
+  UnitsInStock?: number;
+  UnitsOnOrder?: number;
+  ReorderLevel?: number;
+  Discontinued?: boolean;
+  Category?: ProductCategory;
+  inEdit?: boolean | string;
+}
+
+const categoryNameEmoticons: { [key: string]: string } = {
+  'Beverages': '🍹',
+  'Condiments': '🥫',
+  'Confections': '🍬',
+  'Dairy Products': '🥛',
+  'Grains/Cereals': '🌾',
+  'Meat/Poultry': '🍗',
+  'Produce': '🥕',
+  'Seafood': '🐟',
+};
+
+const EmoticonCell = (props: Props) => {
+  const emoticon = categoryNameEmoticons[props.dataItem.Category.CategoryName] || '❓';
+  return (
+    <td>
+      <span style={{ fontSize: '16px', marginRight: '8px' }}>{emoticon}</span>
+      {props.dataItem.Category.CategoryName}
+    </td>
+  );
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  
+  const initialDataState: State = {
+    skip: 0,
+    take: 20,
+    sort: [],
+    filter: {
+      logic: "or",
+      filters: [],
+    },
+  }
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+  const [dataState, setDataState] = React.useState<State>(initialDataState);
+  const [data, setData] = React.useState<Product[]>(products);
+  const [editID, setEditID] = React.useState<number | null>(null);
+  let gridPDFExport: GridPDFExport | null;
+
+
+  const exportPDF = () => {
+    if (gridPDFExport) {
+      gridPDFExport.save(products);
+    }
+  };
+
+  const handleDataStateChange = (e: Event) => {
+    setDataState(e.dataState);
+  };
+
+  const handleRowClick = (e: Row) => {
+    setEditID(e.dataItem.ProductID);
+  };
+
+  const handleItemChange = (e: Item) => {
+    const inEditID = e.dataItem.ProductID;
+    const field = e.field || '';
+    const newData = data.map((item) =>
+      item.ProductID === inEditID ? { ...item, [field]: e.value } : item
+    );
+    setData(newData);
+  };
+
+  const grid = (
+    <Grid 
+      data={{...process(data, dataState) as DataResult, 
+            data: process(data, dataState).data.map((item: Product) => ({
+              ...item,
+              inEdit: item.ProductID === editID
+            }))}}
+      pageable={true}
+      skip={dataState.skip}
+      take={dataState.take}
+      total={products.length}
+      sortable={true}
+      sort={dataState.sort}
+      filterable={true}
+      filter={dataState.filter}
+      editField="inEdit"
+      onRowClick={handleRowClick}
+      onItemChange={handleItemChange}
+      onDataStateChange={handleDataStateChange}
+      {...dataState}
+    >
+
+      <GridToolbar>
+        <Button className="k-button" onClick={exportPDF}>Export PDF</Button>
+      </GridToolbar>
+
+      <Column field="ProductID" title="ID"/>
+      <Column field="ProductName" title="Name"/>
+      <Column field="Category.CategoryName" title="Category" cell={EmoticonCell}/>
+      <Column field="UnitPrice" title="Price"/>
+      <Column field="UnitsInStock" title="In stock"/>
+      <Column field="Discontinued" title="Discontinued"/>
+    </Grid>
+  );
+
+  return (
+    <div className='grid-wrapper'>
+      {grid}
+      <GridPDFExport ref={(pdfExport) => { gridPDFExport = pdfExport; }} paperSize={'A4'} landscape={true} margin={"1cm"} scale={0.5}>
+          {grid }
+      </GridPDFExport>
     </div>
   );
 }

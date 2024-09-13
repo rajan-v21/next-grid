@@ -1,0 +1,49 @@
+
+@import '@progress/kendo-theme-core/scss/functions/index.import.scss';
+
+$kendo-colors: ();
+$kendo-colors: k-map-merge(
+    $kendo-colors,
+    k-generate-color-variations('primary', #007bff, 'default'),
+    k-map-set($kendo-colors, on-app-surface, #00216B)
+);
+
+$kendo-font-size: 1rem;
+$kendo-font-family: Helvetica;
+
+$kendo-grid-alt-bg: #DCECFF;
+
+.k-column-title {
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.grid-wrapper {
+    width: 100%;
+    overflow-x: auto;
+  }
+  
+  .k-grid {
+    width: 100%;
+  }
+  
+  .k-grid-header {
+    flex: 1;
+  }
+  
+  .k-grid-content {
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  
+  @media (max-width: 600px) {
+    .k-grid .k-grid-header th,
+    .k-grid .k-grid-content td {
+      font-size: 12px;
+      padding: 4px;
+    }
+  }
+  
+
+  
+@import '@progress/kendo-theme-default/dist/all.scss';
